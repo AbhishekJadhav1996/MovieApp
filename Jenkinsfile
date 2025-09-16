@@ -110,19 +110,17 @@ pipeline {
                 script {
                     sh """
                         echo '🔍 Running Trivy scan on ${env.IMAGE_TAG}'
-
+        
                         # JSON report
                         trivy image -f json -o trivy-image.json ${env.IMAGE_TAG}
-
+        
                         # Table report
                         trivy image -f table -o trivy-image.txt ${env.IMAGE_TAG}
-
-                        # Uncomment below line to fail build if HIGH/CRITICAL found
-                        # trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_TAG}
                     """
                 }
             }
         }
+
 
         stage("Tag & Push to DockerHub") {
             steps {
