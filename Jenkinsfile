@@ -24,15 +24,28 @@ pipeline {
             }
         }
 
+        // stage("SonarQube Analysis") {
+        //     steps {
+        //         withSonarQubeEnv('sonar-server') {
+        //             sh ''' $SCANNER_HOME/bin/sonar-scanner \
+        //                 -Dsonar.projectName=movie \
+        //                 -Dsonar.projectKey=movie '''
+        //         }
+        //     }
+        // }
         stage("SonarQube Analysis") {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=movie \
-                        -Dsonar.projectKey=movie '''
+                    sh '''
+                        $SCANNER_HOME/bin/sonar-scanner \
+                          -Dsonar.projectName=movie \
+                          -Dsonar.projectKey=movie \
+                          -Dsonar.javascript.node.maxspace=4096
+                    '''
                 }
             }
         }
+
 
         stage("Quality Gate") {
             steps {
