@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -24,15 +23,6 @@ pipeline {
             }
         }
 
-        // stage("SonarQube Analysis") {
-        //     steps {
-        //         withSonarQubeEnv('sonar-server') {
-        //             sh ''' $SCANNER_HOME/bin/sonar-scanner \
-        //                 -Dsonar.projectName=movie \
-        //                 -Dsonar.projectKey=movie '''
-        //         }
-        //     }
-        // }
         stage("SonarQube Analysis") {
             steps {
                 withSonarQubeEnv('sonar-server') {
@@ -40,113 +30,96 @@ pipeline {
                         $SCANNER_HOME/bin/sonar-scanner \
                           -Dsonar.projectName=movie \
                           -Dsonar.projectKey=movie \
+                          -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/** \
                           -Dsonar.javascript.node.maxspace=4096
                     '''
                 }
             }
         }
 
-
         stage("Quality Gate") {
             steps {
                 script {
-                    timeout(time: 3, unit: 'MINUTES') {
-                  
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                    timeout(time: 10, unit: 'MINUTES') {
+                        def qg = waitForQualityGate abortPipeline: true, credentialsId: 'sonar-token'
+                        echo "Quality Gate status: ${qg.status}"
+                    }
                 }
             }
         }
-        }
 
-    stage("Install NPM Dependencies") {
-        steps {
-            parallel(
-                "API Gateway": {
-                    dir("api-gateway") {
-                        sh "npm install"
+        stage("Install NPM Dependencies") {
+            steps {
+                parallel(
+                    "API Gateway": {
+                        dir("api-gateway") {
+                            sh "npm install"
+                        }
+                    },
+                    "Backend": {
+                        dir("movie-app-backend-master") {
+                            sh "npm install"
+                        }
+                    },
+                    "Frontend": {
+                        dir("movie-app-frontend-master") {
+                            sh "npm install"
+                        }
                     }
-                },
-                "Backend": {
-                    dir("movie-app-backend-master") {
-                        sh "npm install"
-                    }
-                },
-                "Frontend": {
-                    dir("movie-app-frontend-master") {
-                        sh "npm install"
-                    }
-                }
-            )
-        }
-    }
-
-       
-        // stage("OWASP FS Scan") {
-        //     steps {
-        //         dependencyCheck additionalArguments: '''
-        //             --scan ./ 
-        //             --disableYarnAudit 
-        //             --disableNodeAudit 
-                
-        //            ''',
-        //         odcInstallation: 'dp-check'
-
-        //         dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-        //     }
-        // }
-
-
-      stage("Trivy File Scan") {
-    steps {
-        parallel(
-            "API Gateway Scan": {
-                dir("api-gateway") {
-                    sh "trivy fs . > trivy-api-gateway.txt"
-                }
-            },
-            "Backend Scan": {
-                dir("movie-app-backend-master") {
-                    sh "trivy fs . > trivy-backend.txt"
-                }
-            },
-            "Frontend Scan": {
-                dir("movie-app-frontend-master") {
-                    sh "trivy fs . > trivy-frontend.txt"
-                }
+                )
             }
-        )
-    }
-}
+        }
 
+        stage("Trivy File Scan") {
+            steps {
+                parallel(
+                    "API Gateway Scan": {
+                        dir("api-gateway") {
+                            sh "trivy fs . > trivy-api-gateway.txt"
+                        }
+                    },
+                    "Backend Scan": {
+                        dir("movie-app-backend-master") {
+                            sh "trivy fs . > trivy-backend.txt"
+                        }
+                    },
+                    "Frontend Scan": {
+                        dir("movie-app-frontend-master") {
+                            sh "trivy fs . > trivy-frontend.txt"
+                        }
+                    }
+                )
+            }
+        }
 
         stage("Build Docker Image") {
             steps {
                 script {
                     env.IMAGE_TAG = "abhishekjadhav1996/movie:${BUILD_NUMBER}"
 
-                    // Optional cleanup
+                    // Cleanup old images if exist
                     sh "docker rmi -f movie ${env.IMAGE_TAG} || true"
 
                     sh "docker build -t movie ."
                 }
             }
         }
-        
+
         stage("Trivy Scan Image") {
             steps {
                 script {
                     sh """
-                    echo '🔍 Running Trivy scan on ${env.IMAGE_TAG}'
+                        echo '🔍 Running Trivy scan on ${env.IMAGE_TAG}'
 
-                    # JSON report
-                    trivy image -f json -o trivy-image.json ${env.IMAGE_TAG}
+                        # JSON report
+                        trivy image -f json -o trivy-image.json ${env.IMAGE_TAG}
 
-                    # HTML report using built-in HTML format
-                    trivy image -f table -o trivy-image.txt ${env.IMAGE_TAG}
+                        # Table report
+                        trivy image -f table -o trivy-image.txt ${env.IMAGE_TAG}
 
-                    # Fail build if HIGH/CRITICAL vulnerabilities found
-                    # trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_TAG} || true
-                """
+                        # Uncomment below line to fail build if HIGH/CRITICAL found
+                        # trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_TAG}
+                    """
                 }
             }
         }
@@ -159,17 +132,13 @@ pipeline {
                         sh "docker tag movie ${env.IMAGE_TAG}"
                         sh "docker push ${env.IMAGE_TAG}"
 
-                        // Also push latest
+                        // Push also as latest
                         sh "docker tag movie abhishekjadhav1996/movie:latest"
                         sh "docker push abhishekjadhav1996/movie:latest"
                     }
                 }
             }
         }
-
-       
-
-
 
         stage("Deploy to Container") {
             steps {
@@ -193,8 +162,3 @@ pipeline {
         }
     }
 }
-
-
-
-
-
