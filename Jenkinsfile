@@ -83,11 +83,28 @@ pipeline {
         // }
 
 
-        stage("Trivy File Scan") {
-            steps {
-                sh "trivy fs . > trivyfs.txt"
+      stage("Trivy File Scan") {
+    steps {
+        parallel(
+            "API Gateway Scan": {
+                dir("api-gateway") {
+                    sh "trivy fs . > trivy-api-gateway.txt"
+                }
+            },
+            "Backend Scan": {
+                dir("movie-app-backend-master") {
+                    sh "trivy fs . > trivy-backend.txt"
+                }
+            },
+            "Frontend Scan": {
+                dir("movie-app-frontend-master") {
+                    sh "trivy fs . > trivy-frontend.txt"
+                }
             }
-        }
+        )
+    }
+}
+
 
         stage("Build Docker Image") {
             steps {
