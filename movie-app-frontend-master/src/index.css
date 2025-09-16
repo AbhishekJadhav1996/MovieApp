@@ -1,0 +1,332 @@
+/* Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #000;
+  color: #fff;
+}
+
+/* Navbar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  z-index: 20;
+  background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0));
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.nav-right input {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #fff;
+  transition: color 0.3s;
+}
+
+.nav-link:hover {
+  color: #00bcd4;
+}
+
+/* Hero Carousel */
+.hero-carousel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+}
+
+.carousel-slide {
+  position: relative;
+}
+
+.carousel-img {
+  width: 100%;
+  height: 100vh;
+  object-fit: cover;
+  filter: brightness(0.6);
+}
+
+.carousel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6));
+  z-index: 1;
+}
+
+.carousel-title {
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  color: #00ffff;
+  z-index: 2;
+  text-align: center;
+  text-shadow: 0 0 5px #00ffff, 0 0 15px #00ffff, 0 0 25px #00ffff;
+  animation: neonGlow 2s ease-in-out infinite alternate;
+}
+
+.feature-banner {
+  position: relative;
+  width: 80%;
+  max-width: 1000px;
+  margin: 40px auto 5px; /* bottom margin reduced from 20px → 10px */
+  padding: 1.5rem 1.5rem;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.feature-banner:hover {
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.42);
+}
+
+.feature-content h1 {
+  font-size: clamp(1.8rem, 4.5vw, 2.5rem);
+  color: #00ffff;
+  text-shadow: 0 0 4px #00ffff, 0 0 12px #00ffff, 0 0 20px #00ffff;
+  margin-bottom: 0.6rem; /* slightly smaller */
+  animation: neonGlow 2s ease-in-out infinite alternate;
+}
+
+.feature-content p {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 1rem; /* reduced spacing */
+}
+
+.cta-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.stats-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0 auto 30px;
+  width: 90%;
+  max-width: 1000px;
+  gap: 40px; /* increase spacing between boxes */
+}
+
+
+
+
+/* Overlay Content */
+.overlay-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 100vh;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* change to center for vertical centering */
+  padding-top: 80px; /* account for navbar */
+  gap: 24px;
+}
+
+/* App Container overlay */
+.app-container {
+  width: 90%;
+  max-width: 1000px;
+  background: rgba(255, 255, 255, 0.1); /* lighter translucent background for glass effect */
+  backdrop-filter: blur(12px) saturate(180%); /* stronger blur for frosted glass */
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3); /* soft border */
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37); /* subtle shadow */
+  text-align: center;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+/* Optional hover effect for extra depth */
+.app-container:hover {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px) saturate(200%);
+  -webkit-backdrop-filter: blur(14px) saturate(200%);
+}
+
+
+/* Movie Form */
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+form input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  min-width: 120px;
+}
+
+/* Movie List */
+.movie-list-container {
+  margin-top: 24px;
+}
+
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.movie-card {
+  background: rgba(255,255,255,0.05);
+  padding: 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.movie-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+.delete-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  margin-top: 8px;
+  background: #ff4d4d;
+  color: #fff;
+}
+
+.delete-btn:hover {
+  background: #ff1a1a;
+}
+
+/* Stats Strip */
+.stats-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+.stat {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 16px;
+  border-radius: 12px;
+  min-width: 100px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  color: #00ffff;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Neon Glow Animation */
+@keyframes neonGlow {
+  0% { text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff; }
+  50% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff; }
+  100% { text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff; }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .carousel-title { font-size: clamp(1.5rem, 6vw, 2.2rem); }
+  .app-container { margin: 20px 10px; padding: 1.5rem; }
+  .movies-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .cta-group { flex-direction: column; gap: 10px; }
+  .stats-strip { flex-direction: column; gap: 10px; }
+}
+
+/* Movie Form Horizontal Layout */
+form {
+  display: flex;
+  flex-wrap: wrap; /* allow wrapping on small screens */
+  gap: 12px;
+  justify-content: center; /* center horizontally */
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+form input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  min-width: 120px;
+  font-size: 0.95rem;
+}
+
+form button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #00bcd4;
+  color: #000;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+form button:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 600px) {
+  form {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  form input,
+  form button {
+    width: 100%;
+    min-width: unset;
+  }
+}
