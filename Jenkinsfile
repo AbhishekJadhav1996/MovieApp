@@ -92,18 +92,32 @@ pipeline {
             }
         }
 
-        stage("Build Docker Image") {
-            steps {
-                script {
-                    env.IMAGE_TAG = "abhishekjadhav1996/movie:${BUILD_NUMBER}"
-
-                    // Cleanup old images if exist
-                    sh "docker rmi -f movie ${env.IMAGE_TAG} || true"
-
-                    sh "docker build -t movie ."
-                }
+    stage("Build Docker Image") {
+        steps {
+            script {
+                env.IMAGE_TAG = "abhishekjadhav1996/movie:${BUILD_NUMBER}"
+    
+                // Cleanup old images if exist
+                sh "docker rmi -f movie ${env.IMAGE_TAG} || true"
+    
+                // Build and tag with IMAGE_TAG
+                sh "docker build -t ${env.IMAGE_TAG} -t movie ."
             }
         }
+    }
+
+        // stage("Build Docker Image") {
+        //     steps {
+        //         script {
+        //             env.IMAGE_TAG = "abhishekjadhav1996/movie:${BUILD_NUMBER}"
+
+        //             // Cleanup old images if exist
+        //             sh "docker rmi -f movie ${env.IMAGE_TAG} || true"
+
+        //             sh "docker build -t movie ."
+        //         }
+        //     }
+        // }
 
         stage("Trivy Scan Image") {
             steps {
