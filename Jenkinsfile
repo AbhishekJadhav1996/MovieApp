@@ -104,9 +104,6 @@ pipeline {
                         BACKEND_PORT=${BACKEND_PORT} \
                         GATEWAY_PORT=${GATEWAY_PORT} \
                         FRONTEND_PORT=${FRONTEND_PORT} \
-                        DB_HOST=cluster0.ffzf1bw.mongodb.net \
-                        DB_USER=${DB_USER} \
-                        DB_PASSWORD=${DB_PASSWORD} \
                         MONGO_URI=${MONGO_URI} \
                         docker-compose -f docker-compose.yml up -d --build
                         """
