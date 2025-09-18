@@ -56,22 +56,23 @@ pipeline {
                 parallel(
                     "API Gateway": {
                         dir("api-gateway") {
-                            sh "npm install"
+                            sh "npm install --legacy-peer-deps --no-audit --no-fund"
                         }
                     },
                     "Backend": {
                         dir("movie-app-backend-master") {
-                            sh "npm install"
+                            sh "npm install --legacy-peer-deps --no-audit --no-fund"
                         }
                     },
                     "Frontend": {
                         dir("movie-app-frontend-master") {
-                            sh "npm install"
+                            sh "npm install --legacy-peer-deps --no-audit --no-fund"
                         }
                     }
                 )
             }
         }
+
 
         stage("Trivy File Scan") {
             steps {
