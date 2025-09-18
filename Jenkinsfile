@@ -93,8 +93,6 @@ pipeline {
                     withCredentials([
                         string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
-                        string(credentialsId: 'db-user', variable: 'DB_USER'),
-                        string(credentialsId: 'db-password', variable: 'DB_PASSWORD')
                     ]) {
                         // Login to DockerHub
                         sh "docker login -u abhishekjadhav1996 -p ${DOCKER_PWD}"
@@ -130,10 +128,27 @@ pipeline {
             }
         }
     }
-
     post {
         always {
             echo "Pipeline finished. Cleaning up..."
+    
+            // Clean Jenkins workspace
+            cleanWs()
+    
+            // Clean up Docker resources
+            script {
+                sh '''
+                    echo "🧹 Cleaning up Docker containers and images..."
+                    # Stop and remove all containers related to movie app
+                    docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
+    
+                    # Remove dangling images (untagged)
+                    docker image prune -f
+    
+                    # Optional: Remove dangling volumes to save space
+                    docker volume prune -f
+                '''
+            }
         }
         success {
             echo "✅ Build, scan, and deployment succeeded!"
@@ -142,7 +157,7 @@ pipeline {
             echo "❌ Pipeline failed. Check logs and reports."
         }
     }
-}
+
 
 
 // pipeline {
