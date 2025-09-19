@@ -15,9 +15,7 @@ pipeline {
 
     stages {
         stage("Clean Workspace") {
-            steps {
-                cleanWs()
-            }
+            steps { cleanWs() }
         }
 
         stage("Git Checkout") {
@@ -75,15 +73,9 @@ pipeline {
 
         stage("Trivy File Scan") {
             steps {
-                dir("api-gateway") {
-                    sh "trivy fs . > trivy-api-gateway.txt"
-                }
-                dir("movie-app-backend-master") {
-                    sh "trivy fs . > trivy-backend.txt"
-                }
-                dir("movie-app-frontend-master") {
-                    sh "trivy fs . > trivy-frontend.txt"
-                }
+                dir("api-gateway") { sh "trivy fs . > trivy-api-gateway.txt" }
+                dir("movie-app-backend-master") { sh "trivy fs . > trivy-backend.txt" }
+                dir("movie-app-frontend-master") { sh "trivy fs . > trivy-frontend.txt" }
             }
         }
 
@@ -91,17 +83,17 @@ pipeline {
             steps {
                 script {
                     withCredentials([
-                        string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
+                        usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
                     ]) {
                         sh """#!/bin/bash
                         set -e
-                        echo "\$DOCKER_PWD" | docker login -u abhishekjadhav1996 --password-stdin
+                        echo "\$DOCKER_PWD" | docker login -u "\$DOCKER_USER" --password-stdin
 
-                        BACKEND_PORT=\$BACKEND_PORT
-                        GATEWAY_PORT=\$GATEWAY_PORT
-                        FRONTEND_PORT=\$FRONTEND_PORT
-                        MONGO_URI=\$MONGO_URI
+                        export BACKEND_PORT=\$BACKEND_PORT
+                        export GATEWAY_PORT=\$GATEWAY_PORT
+                        export FRONTEND_PORT=\$FRONTEND_PORT
+                        export MONGO_URI=\$MONGO_URI
 
                         if command -v docker compose >/dev/null 2>&1; then
                             docker compose -f docker-compose.yml up -d --build
@@ -118,13 +110,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        docker tag movie-backend:latest abhishekjadhav1996/movie-backend:latest
                         docker push abhishekjadhav1996/movie-backend:latest
-
-                        docker tag movie-gateway:latest abhishekjadhav1996/movie-gateway:latest
                         docker push abhishekjadhav1996/movie-gateway:latest
-
-                        docker tag movie-frontend:latest abhishekjadhav1996/movie-frontend:latest
                         docker push abhishekjadhav1996/movie-frontend:latest
                     '''
                 }
@@ -134,13 +121,17 @@ pipeline {
         stage("Trivy Scan Docker Images") {
             steps {
                 script {
-                    def images = ["movie-backend", "movie-gateway", "movie-frontend"]
+                    def images = [
+                        "abhishekjadhav1996/movie-backend:latest",
+                        "abhishekjadhav1996/movie-gateway:latest",
+                        "abhishekjadhav1996/movie-frontend:latest"
+                    ]
 
                     for (img in images) {
                         sh """
                             echo "🔍 Scanning image: ${img}"
-                            trivy image -f json -o trivy-${img}.json ${img}:latest
-                            trivy image -f table -o trivy-${img}.txt ${img}:latest
+                            trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
+                            trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
                         """
                     }
                 }
@@ -162,12 +153,8 @@ pipeline {
                 '''
             }
         }
-        success {
-            echo "✅ Build, scan, and deployment succeeded!"
-        }
-        failure {
-            echo "❌ Pipeline failed. Check logs and reports."
-        }
+        success { echo "✅ Build, scan, and deployment succeeded!" }
+        failure { echo "❌ Pipeline failed. Check logs and reports." }
     }
 }
 
