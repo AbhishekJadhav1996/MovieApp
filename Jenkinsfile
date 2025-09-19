@@ -91,14 +91,23 @@ pipeline {
             steps {
                 script {
                     withCredentials([
+                        string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
-                        usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')
                     ]) {
                         sh """#!/bin/bash
                         set -e
-                        echo "\$DOCKER_PWD" | docker login -u "\$DOCKER_USER" --password-stdin
-                        export MONGO_URI=\$MONGO_URI
-                        docker compose -f docker-compose.yml up -d --build
+                        echo "\$DOCKER_PWD" | docker login -u abhishekjadhav1996 --password-stdin
+
+                        BACKEND_PORT=\$BACKEND_PORT
+                        GATEWAY_PORT=\$GATEWAY_PORT
+                        FRONTEND_PORT=\$FRONTEND_PORT
+                        MONGO_URI=\$MONGO_URI
+
+                        if command -v docker compose >/dev/null 2>&1; then
+                            docker compose -f docker-compose.yml up -d --build
+                        else
+                            docker-compose -f docker-compose.yml up -d --build
+                        fi
                         """
                     }
                 }
@@ -108,20 +117,16 @@ pipeline {
         stage("Push Images to DockerHub") {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')]) {
-                        sh """#!/bin/bash
-                        set -e
-                        # Tag images
-                        docker tag movie-backend:latest \$DOCKER_USER/movie-backend:latest
-                        docker tag movie-gateway:latest \$DOCKER_USER/movie-gateway:latest
-                        docker tag movie-frontend:latest \$DOCKER_USER/movie-frontend:latest
+                    sh '''
+                        docker tag movie-backend:latest abhishekjadhav1996/movie-backend:latest
+                        docker push abhishekjadhav1996/movie-backend:latest
 
-                        # Push images
-                        docker push \$DOCKER_USER/movie-backend:latest
-                        docker push \$DOCKER_USER/movie-gateway:latest
-                        docker push \$DOCKER_USER/movie-frontend:latest
-                        """
-                    }
+                        docker tag movie-gateway:latest abhishekjadhav1996/movie-gateway:latest
+                        docker push abhishekjadhav1996/movie-gateway:latest
+
+                        docker tag movie-frontend:latest abhishekjadhav1996/movie-frontend:latest
+                        docker push abhishekjadhav1996/movie-frontend:latest
+                    '''
                 }
             }
         }
@@ -130,6 +135,7 @@ pipeline {
             steps {
                 script {
                     def images = ["movie-backend", "movie-gateway", "movie-frontend"]
+
                     for (img in images) {
                         sh """
                             echo "🔍 Scanning image: ${img}"
@@ -147,17 +153,17 @@ pipeline {
             echo "Pipeline finished. Cleaning up..."
             cleanWs()
             script {
-                sh """#!/bin/bash
-                echo "🧹 Cleaning up Docker containers, images, and credentials..."
-                docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
-                docker image prune -f
-                docker volume prune -f
-                docker logout || true
-                """
+                sh '''#!/bin/bash
+                    echo "🧹 Cleaning up Docker containers, images, and credentials..."
+                    docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
+                    docker image prune -f
+                    docker volume prune -f
+                    docker logout || true
+                '''
             }
         }
         success {
-            echo "✅ Build, scan, push, and deployment succeeded!"
+            echo "✅ Build, scan, and deployment succeeded!"
         }
         failure {
             echo "❌ Pipeline failed. Check logs and reports."
