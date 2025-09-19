@@ -141,17 +141,9 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished. Cleaning up..."
+            echo "Pipeline finished."
             cleanWs()
-            script {
-                sh '''#!/bin/bash
-                    echo "🧹 Cleaning up Docker containers, images, and credentials..."
-                    docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
-                    docker image prune -f
-                    docker volume prune -f
-                    docker logout || true
-                '''
-            }
+            // ✅ Removed container/image cleanup so containers keep running
         }
         success { echo "✅ Build, scan, and deployment succeeded!" }
         failure { echo "❌ Pipeline failed. Check logs and reports." }
