@@ -94,18 +94,22 @@ pipeline {
                         string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
                     ]) {
-                        // ✅ Safe login (username hardcoded, password from secret text)
+                        // ✅ Docker login
                         sh '''
                             echo $DOCKER_PWD | docker login -u abhishekjadhav1996 --password-stdin
                         '''
 
-                        // ✅ Run docker compose (v2 first, fallback to v1)
+                        // ✅ Run docker compose (detects v2 or falls back to v1)
                         sh '''
                             BACKEND_PORT=${BACKEND_PORT} \
                             GATEWAY_PORT=${GATEWAY_PORT} \
                             FRONTEND_PORT=${FRONTEND_PORT} \
                             MONGO_URI=${MONGO_URI} \
-                            (docker compose -f docker-compose.yml up -d --build || docker-compose -f docker-compose.yml up -d --build)
+                            if command -v docker compose >/dev/null 2>&1; then
+                                docker compose -f docker-compose.yml up -d --build
+                            else
+                                docker-compose -f docker-compose.yml up -d --build
+                            fi
                         '''
                     }
                 }
@@ -151,7 +155,7 @@ pipeline {
                     # Remove dangling volumes (optional)
                     docker volume prune -f
 
-                    # Logout from DockerHub to avoid leaving credentials behind
+                    # Logout from DockerHub
                     docker logout || true
                 '''
             }
@@ -164,6 +168,7 @@ pipeline {
         }
     }
 }
+
 
 // pipeline {
 //     agent any
