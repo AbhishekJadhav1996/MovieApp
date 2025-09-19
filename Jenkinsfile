@@ -99,7 +99,7 @@ pipeline {
                             echo $DOCKER_PWD | docker login -u abhishekjadhav1996 --password-stdin
                         '''
 
-                        // ✅ Run docker compose (bash, supports v2 or v1)
+                        // ✅ Always use Docker Compose V2
                         sh '''#!/bin/bash
 set -e
 
@@ -108,11 +108,7 @@ export GATEWAY_PORT=${GATEWAY_PORT}
 export FRONTEND_PORT=${FRONTEND_PORT}
 export MONGO_URI=${MONGO_URI}
 
-if command -v "docker compose" >/dev/null 2>&1; then
-    docker compose -f docker-compose.yml up -d --build
-else
-    docker-compose -f docker-compose.yml up -d --build
-fi
+docker compose -f docker-compose.yml up -d --build
 '''
                     }
                 }
