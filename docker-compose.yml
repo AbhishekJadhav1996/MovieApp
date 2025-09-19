@@ -4,7 +4,6 @@ services:
   backend:
     build: ./movie-app-backend-master
     container_name: movie-backend
-    image: abhishekjadhav1996/movie-backend:latest   # ✅ added
     ports:
       - "5000:5000"
     environment:
@@ -13,7 +12,6 @@ services:
   gateway:
     build: ./api-gateway
     container_name: movie-gateway
-    image: abhishekjadhav1996/movie-gateway:latest   # ✅ added
     ports:
       - "8000:8000"
     depends_on:
@@ -24,14 +22,13 @@ services:
   frontend:
     build: ./movie-app-frontend-master
     container_name: movie-frontend
-    image: abhishekjadhav1996/movie-frontend:latest  # ✅ added
+    # 🔥 changed host port to 3001 to avoid conflict with Grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - gateway
     environment:
       API_GATEWAY_URL: "http://gateway:8000"
-
 
 
 
