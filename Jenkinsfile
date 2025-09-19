@@ -87,42 +87,39 @@ pipeline {
             }
         }
 
-        stage("Docker Build & Push") {
+        stage("Docker Compose Build & Deploy") {
             steps {
                 script {
                     withCredentials([
-                        string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
+                        usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')
                     ]) {
                         sh """#!/bin/bash
                         set -e
-
-                        echo "\$DOCKER_PWD" | docker login -u abhishekjadhav1996 --password-stdin
-
-                        # Build images with DockerHub tags
-                        docker build -t abhishekjadhav1996/movie-backend:latest ./movie-app-backend-master
-                        docker build -t abhishekjadhav1996/movie-gateway:latest ./api-gateway
-                        docker build -t abhishekjadhav1996/movie-frontend:latest ./movie-app-frontend-master
-
-                        # Push images to DockerHub
-                        docker push abhishekjadhav1996/movie-backend:latest
-                        docker push abhishekjadhav1996/movie-gateway:latest
-                        docker push abhishekjadhav1996/movie-frontend:latest
+                        echo "\$DOCKER_PWD" | docker login -u "\$DOCKER_USER" --password-stdin
+                        export MONGO_URI=\$MONGO_URI
+                        docker compose -f docker-compose.yml up -d --build
                         """
                     }
                 }
             }
         }
 
-        stage("Docker Compose Deploy") {
+        stage("Push Images to DockerHub") {
             steps {
                 script {
-                    withCredentials([
-                        string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
-                    ]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')]) {
                         sh """#!/bin/bash
                         set -e
-                        MONGO_URI=\$MONGO_URI docker-compose -f docker-compose.yml up -d
+                        # Tag images
+                        docker tag movie-backend:latest \$DOCKER_USER/movie-backend:latest
+                        docker tag movie-gateway:latest \$DOCKER_USER/movie-gateway:latest
+                        docker tag movie-frontend:latest \$DOCKER_USER/movie-frontend:latest
+
+                        # Push images
+                        docker push \$DOCKER_USER/movie-backend:latest
+                        docker push \$DOCKER_USER/movie-gateway:latest
+                        docker push \$DOCKER_USER/movie-frontend:latest
                         """
                     }
                 }
@@ -132,16 +129,12 @@ pipeline {
         stage("Trivy Scan Docker Images") {
             steps {
                 script {
-                    def images = [
-                        "abhishekjadhav1996/movie-backend:latest",
-                        "abhishekjadhav1996/movie-gateway:latest",
-                        "abhishekjadhav1996/movie-frontend:latest"
-                    ]
+                    def images = ["movie-backend", "movie-gateway", "movie-frontend"]
                     for (img in images) {
                         sh """
                             echo "🔍 Scanning image: ${img}"
-                            trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
-                            trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
+                            trivy image -f json -o trivy-${img}.json ${img}:latest
+                            trivy image -f table -o trivy-${img}.txt ${img}:latest
                         """
                     }
                 }
@@ -152,21 +145,19 @@ pipeline {
     post {
         always {
             echo "Pipeline finished. Cleaning up..."
-
             cleanWs()
-
             script {
-                sh '''#!/bin/bash
-                    echo "🧹 Cleaning up Docker containers, images, and credentials..."
-                    docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
-                    docker image prune -f
-                    docker volume prune -f
-                    docker logout || true
-                '''
+                sh """#!/bin/bash
+                echo "🧹 Cleaning up Docker containers, images, and credentials..."
+                docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
+                docker image prune -f
+                docker volume prune -f
+                docker logout || true
+                """
             }
         }
         success {
-            echo "✅ Build, scan, and deployment succeeded!"
+            echo "✅ Build, scan, push, and deployment succeeded!"
         }
         failure {
             echo "❌ Pipeline failed. Check logs and reports."
