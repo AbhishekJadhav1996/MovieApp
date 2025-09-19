@@ -94,22 +94,23 @@ pipeline {
                         string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
                     ]) {
-                        // ✅ Docker login
+                        // ✅ Safe login
                         sh '''
                             echo $DOCKER_PWD | docker login -u abhishekjadhav1996 --password-stdin
                         '''
 
-                        // ✅ Always use Docker Compose V2
-                        sh '''#!/bin/bash
-set -e
-
-export BACKEND_PORT=${BACKEND_PORT}
-export GATEWAY_PORT=${GATEWAY_PORT}
-export FRONTEND_PORT=${FRONTEND_PORT}
-export MONGO_URI=${MONGO_URI}
-
-docker compose -f docker-compose.yml up -d --build
-'''
+                        // ✅ Run docker compose (works with both v1 and v2)
+                        sh '''
+                            BACKEND_PORT=${BACKEND_PORT} \
+                            GATEWAY_PORT=${GATEWAY_PORT} \
+                            FRONTEND_PORT=${FRONTEND_PORT} \
+                            MONGO_URI=${MONGO_URI} \
+                            if command -v docker compose >/dev/null 2>&1; then
+                                docker compose -f docker-compose.yml up -d --build
+                            else
+                                docker-compose -f docker-compose.yml up -d --build
+                            fi
+                        '''
                     }
                 }
             }
@@ -118,18 +119,27 @@ docker compose -f docker-compose.yml up -d --build
         stage("Trivy Scan Docker Images") {
             steps {
                 script {
-                    sh '''
-                        echo "🔍 Running Trivy scan on all images"
+                    // Detect built images dynamically
+                    def images = sh(
+                        script: '''
+                            if command -v docker compose >/dev/null 2>&1; then
+                                docker compose -f docker-compose.yml images --quiet
+                            else
+                                docker-compose -f docker-compose.yml images --quiet
+                            fi
+                        ''',
+                        returnStdout: true
+                    ).trim().split("\n")
 
-                        trivy image -f json -o trivy-backend.json movie-backend
-                        trivy image -f table -o trivy-backend.txt movie-backend
-
-                        trivy image -f json -o trivy-gateway.json movie-gateway
-                        trivy image -f table -o trivy-gateway.txt movie-gateway
-
-                        trivy image -f json -o trivy-frontend.json movie-frontend
-                        trivy image -f table -o trivy-frontend.txt movie-frontend
-                    '''
+                    for (img in images) {
+                        if (img?.trim()) {
+                            sh """
+                                echo "🔍 Scanning image: ${img}"
+                                trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
+                                trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
+                            """
+                        }
+                    }
                 }
             }
         }
@@ -154,7 +164,7 @@ docker compose -f docker-compose.yml up -d --build
                     # Remove dangling volumes (optional)
                     docker volume prune -f
 
-                    # Logout from DockerHub
+                    # Logout from DockerHub to avoid leaving credentials behind
                     docker logout || true
                 '''
             }
@@ -167,7 +177,6 @@ docker compose -f docker-compose.yml up -d --build
         }
     }
 }
-
 
 
 // pipeline {
