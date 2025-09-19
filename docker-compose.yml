@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   backend:
-    image: abhishekjadhav1996/movie-backend:latest
+    build: ./movie-app-backend-master
     container_name: movie-backend
     ports:
       - "5000:5000"
@@ -11,7 +11,7 @@ services:
       MONGO_URI: "${MONGO_URI}"
 
   gateway:
-    image: abhishekjadhav1996/movie-gateway:latest
+    build: ./api-gateway
     container_name: movie-gateway
     ports:
       - "8000:8000"
@@ -21,7 +21,7 @@ services:
       BACKEND_URL: "http://backend:5000"
 
   frontend:
-    image: abhishekjadhav1996/movie-frontend:latest
+    build: ./movie-app-frontend-master
     container_name: movie-frontend
     ports:
       - "3000:3000"
@@ -29,6 +29,7 @@ services:
       - gateway
     environment:
       API_GATEWAY_URL: "http://gateway:8000"
+
 
 
 
