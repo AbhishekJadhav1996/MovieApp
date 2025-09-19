@@ -10,7 +10,7 @@ pipeline {
         SCANNER_HOME = tool 'sonar-scanner'
         BACKEND_PORT = '5000'
         GATEWAY_PORT = '8000'
-        FRONTEND_PORT = '3000'
+        FRONTEND_PORT = '3001'   // ✅ avoid Grafana's port 3000
     }
 
     stages {
@@ -110,6 +110,10 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        docker tag movie-backend:latest abhishekjadhav1996/movie-backend:latest
+                        docker tag movie-gateway:latest abhishekjadhav1996/movie-gateway:latest
+                        docker tag movie-frontend:latest abhishekjadhav1996/movie-frontend:latest
+
                         docker push abhishekjadhav1996/movie-backend:latest
                         docker push abhishekjadhav1996/movie-gateway:latest
                         docker push abhishekjadhav1996/movie-frontend:latest
@@ -137,18 +141,239 @@ pipeline {
                 }
             }
         }
+
+        // ✅ Health Checks
+        stage("Health Check - Backend") {
+            steps {
+                script {
+                    echo "🌍 Checking if backend is up on http://localhost:${BACKEND_PORT}"
+                    sh """
+                        for i in {1..10}; do
+                            if curl -s http://localhost:${BACKEND_PORT}/health > /dev/null; then
+                                echo "✅ Backend is UP!"
+                                exit 0
+                            fi
+                            echo "⏳ Waiting for backend... (\$i/10)"
+                            sleep 5
+                        done
+                        echo "❌ Backend did not start"
+                        exit 1
+                    """
+                }
+            }
+        }
+
+        stage("Health Check - API Gateway") {
+            steps {
+                script {
+                    echo "🌍 Checking if gateway is up on http://localhost:${GATEWAY_PORT}"
+                    sh """
+                        for i in {1..10}; do
+                            if curl -s http://localhost:${GATEWAY_PORT}/health > /dev/null; then
+                                echo "✅ Gateway is UP!"
+                                exit 0
+                            fi
+                            echo "⏳ Waiting for gateway... (\$i/10)"
+                            sleep 5
+                        done
+                        echo "❌ Gateway did not start"
+                        exit 1
+                    """
+                }
+            }
+        }
+
+        stage("Health Check - Frontend") {
+            steps {
+                script {
+                    echo "🌍 Checking if frontend is up on http://localhost:${FRONTEND_PORT}"
+                    sh """
+                        for i in {1..10}; do
+                            if curl -s http://localhost:${FRONTEND_PORT} > /dev/null; then
+                                echo "✅ Frontend is UP!"
+                                exit 0
+                            fi
+                            echo "⏳ Waiting for frontend... (\$i/10)"
+                            sleep 5
+                        done
+                        echo "❌ Frontend did not start"
+                        exit 1
+                    """
+                }
+            }
+        }
     }
 
     post {
         always {
-            echo "Pipeline finished."
+            echo "Pipeline finished. Cleaning up..."
             cleanWs()
-            // ✅ Removed container/image cleanup so containers keep running
+            script {
+                sh '''#!/bin/bash
+                    echo "🧹 Cleaning up Docker containers, images, and credentials..."
+                    docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
+                    docker image prune -f
+                    docker volume prune -f
+                    docker logout || true
+                '''
+            }
         }
-        success { echo "✅ Build, scan, and deployment succeeded!" }
+        success { echo "✅ Build, scan, deploy, and health checks succeeded!" }
         failure { echo "❌ Pipeline failed. Check logs and reports." }
     }
 }
+
+// pipeline {
+//     agent any
+
+//     tools {
+//         jdk 'jdk17'
+//         nodejs 'node22'
+//     }
+
+//     environment {
+//         SCANNER_HOME = tool 'sonar-scanner'
+//         BACKEND_PORT = '5000'
+//         GATEWAY_PORT = '8000'
+//         FRONTEND_PORT = '3000'
+//     }
+
+//     stages {
+//         stage("Clean Workspace") {
+//             steps { cleanWs() }
+//         }
+
+//         stage("Git Checkout") {
+//             steps {
+//                 git branch: 'main', url: 'https://github.com/AbhishekJadhav1996/MovieApp.git'
+//             }
+//         }
+
+//         stage("SonarQube Analysis") {
+//             steps {
+//                 withSonarQubeEnv('sonar-server') {
+//                     sh '''
+//                         $SCANNER_HOME/bin/sonar-scanner \
+//                           -Dsonar.projectName=movie \
+//                           -Dsonar.projectKey=movie \
+//                           -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/** \
+//                           -Dsonar.javascript.node.maxspace=4096
+//                     '''
+//                 }
+//             }
+//         }
+
+//         stage("Quality Gate") {
+//             steps {
+//                 script {
+//                     timeout(time: 10, unit: 'MINUTES') {
+//                         def qg = waitForQualityGate abortPipeline: true, credentialsId: 'sonar-token'
+//                         echo "Quality Gate status: ${qg.status}"
+//                     }
+//                 }
+//             }
+//         }
+
+//         stage("Install NPM Dependencies") {
+//             steps {
+//                 parallel(
+//                     "API Gateway": {
+//                         dir("api-gateway") {
+//                             sh "npm install --legacy-peer-deps --no-audit --no-fund"
+//                         }
+//                     },
+//                     "Backend": {
+//                         dir("movie-app-backend-master") {
+//                             sh "npm install --legacy-peer-deps --no-audit --no-fund"
+//                         }
+//                     },
+//                     "Frontend": {
+//                         dir("movie-app-frontend-master") {
+//                             sh "npm install --legacy-peer-deps --no-audit --no-fund"
+//                         }
+//                     }
+//                 )
+//             }
+//         }
+
+//         stage("Trivy File Scan") {
+//             steps {
+//                 dir("api-gateway") { sh "trivy fs . > trivy-api-gateway.txt" }
+//                 dir("movie-app-backend-master") { sh "trivy fs . > trivy-backend.txt" }
+//                 dir("movie-app-frontend-master") { sh "trivy fs . > trivy-frontend.txt" }
+//             }
+//         }
+
+//         stage("Docker Compose Build & Deploy") {
+//             steps {
+//                 script {
+//                     withCredentials([
+//                         usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD'),
+//                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
+//                     ]) {
+//                         sh """#!/bin/bash
+//                         set -e
+//                         echo "\$DOCKER_PWD" | docker login -u "\$DOCKER_USER" --password-stdin
+
+//                         export BACKEND_PORT=\$BACKEND_PORT
+//                         export GATEWAY_PORT=\$GATEWAY_PORT
+//                         export FRONTEND_PORT=\$FRONTEND_PORT
+//                         export MONGO_URI=\$MONGO_URI
+
+//                         if command -v docker compose >/dev/null 2>&1; then
+//                             docker compose -f docker-compose.yml up -d --build
+//                         else
+//                             docker-compose -f docker-compose.yml up -d --build
+//                         fi
+//                         """
+//                     }
+//                 }
+//             }
+//         }
+
+//         stage("Push Images to DockerHub") {
+//             steps {
+//                 script {
+//                     sh '''
+//                         docker push abhishekjadhav1996/movie-backend:latest
+//                         docker push abhishekjadhav1996/movie-gateway:latest
+//                         docker push abhishekjadhav1996/movie-frontend:latest
+//                     '''
+//                 }
+//             }
+//         }
+
+//         stage("Trivy Scan Docker Images") {
+//             steps {
+//                 script {
+//                     def images = [
+//                         "abhishekjadhav1996/movie-backend:latest",
+//                         "abhishekjadhav1996/movie-gateway:latest",
+//                         "abhishekjadhav1996/movie-frontend:latest"
+//                     ]
+
+//                     for (img in images) {
+//                         sh """
+//                             echo "🔍 Scanning image: ${img}"
+//                             trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
+//                             trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
+//                         """
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+//     post {
+//         always {
+//             echo "Pipeline finished."
+//             cleanWs()
+//             // ✅ Removed container/image cleanup so containers keep running
+//         }
+//         success { echo "✅ Build, scan, and deployment succeeded!" }
+//         failure { echo "❌ Pipeline failed. Check logs and reports." }
+//     }
+// }
 
 // pipeline {
 //     agent any
