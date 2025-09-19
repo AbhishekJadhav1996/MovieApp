@@ -91,15 +91,15 @@ pipeline {
             steps {
                 script {
                     withCredentials([
-                        usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD'),
+                        string(credentialsId: 'docker-cred', variable: 'DOCKER_PWD'),
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
                     ]) {
-                        // ✅ Safe login with Jenkins docker-cred
+                        // ✅ Safe login (username hardcoded, password from secret text)
                         sh '''
-                            echo $DOCKER_PWD | docker login -u $DOCKER_USER --password-stdin
+                            echo $DOCKER_PWD | docker login -u abhishekjadhav1996 --password-stdin
                         '''
 
-                        // ✅ Run docker compose (supports both v2 and v1)
+                        // ✅ Run docker compose (v2 first, fallback to v1)
                         sh '''
                             BACKEND_PORT=${BACKEND_PORT} \
                             GATEWAY_PORT=${GATEWAY_PORT} \
@@ -111,6 +111,7 @@ pipeline {
                 }
             }
         }
+
 
         stage("Trivy Scan Docker Images") {
             steps {
