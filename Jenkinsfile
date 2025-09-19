@@ -23,10 +23,8 @@ pipeline {
                         string(credentialsId: 'mongo-uri', variable: 'mongo_url'),
                         usernameColonPassword(credentialsId: 'docker', variable: 'docker')
                     ]) {
-                        // Split docker creds into user & pass
-                        def (dockerUser, dockerPwd) = docker.tokenize(':')
-
                         // ------------------ Pipeline Starts ------------------
+
                         stage("Clean Workspace") {
                             steps { cleanWs() }
                         }
@@ -88,15 +86,18 @@ pipeline {
 
                         stage("Docker Compose Build & Deploy") {
                             steps {
-                                sh """
-                                    echo '${dockerPwd}' | docker login -u '${dockerUser}' --password-stdin
+                                sh '''
+                                    DOCKER_USER=$(echo $docker | cut -d: -f1)
+                                    DOCKER_PWD=$(echo $docker | cut -d: -f2)
+
+                                    echo $DOCKER_PWD | docker login -u $DOCKER_USER --password-stdin
 
                                     BACKEND_PORT=${BACKEND_PORT} \
                                     GATEWAY_PORT=${GATEWAY_PORT} \
                                     FRONTEND_PORT=${FRONTEND_PORT} \
                                     MONGO_URI=${mongo_url} \
                                     (docker compose -f docker-compose.yml up -d --build || docker-compose -f docker-compose.yml up -d --build)
-                                """
+                                '''
                             }
                         }
 
@@ -116,6 +117,7 @@ pipeline {
                                 '''
                             }
                         }
+
                         // ------------------ Pipeline Ends ------------------
                     }
                 }
