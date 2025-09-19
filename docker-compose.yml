@@ -4,15 +4,16 @@ services:
   backend:
     build: ./movie-app-backend-master
     container_name: movie-backend
+    image: abhishekjadhav1996/movie-backend:latest   # ✅ added
     ports:
       - "5000:5000"
     environment:
-      PORT: "5000"
       MONGO_URI: "${MONGO_URI}"
 
   gateway:
     build: ./api-gateway
     container_name: movie-gateway
+    image: abhishekjadhav1996/movie-gateway:latest   # ✅ added
     ports:
       - "8000:8000"
     depends_on:
@@ -23,6 +24,7 @@ services:
   frontend:
     build: ./movie-app-frontend-master
     container_name: movie-frontend
+    image: abhishekjadhav1996/movie-frontend:latest  # ✅ added
     ports:
       - "3000:3000"
     depends_on:
