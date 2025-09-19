@@ -95,21 +95,22 @@ pipeline {
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
                     ]) {
                         // ✅ Safe login
-                        sh '''
-                            echo $DOCKER_PWD | docker login -u abhishekjadhav1996 --password-stdin
+                        sh '''#!/bin/bash
+                        echo $DOCKER_PWD | docker login -u abhishekjadhav1996 --password-stdin
                         '''
 
-                        // ✅ Run docker compose (works with both v1 and v2)
-                        sh '''
-                            BACKEND_PORT=${BACKEND_PORT} \
-                            GATEWAY_PORT=${GATEWAY_PORT} \
-                            FRONTEND_PORT=${FRONTEND_PORT} \
-                            MONGO_URI=${MONGO_URI} \
-                            if command -v docker compose >/dev/null 2>&1; then
-                                docker compose -f docker-compose.yml up -d --build
-                            else
-                                docker-compose -f docker-compose.yml up -d --build
-                            fi
+                        // ✅ Run docker compose (works with v1 and v2)
+                        sh '''#!/bin/bash
+                        set -e
+                        BACKEND_PORT=${BACKEND_PORT} \
+                        GATEWAY_PORT=${GATEWAY_PORT} \
+                        FRONTEND_PORT=${FRONTEND_PORT} \
+                        MONGO_URI=${MONGO_URI} \
+                        if command -v docker compose >/dev/null 2>&1; then
+                            docker compose -f docker-compose.yml up -d --build
+                        else
+                            docker-compose -f docker-compose.yml up -d --build
+                        fi
                         '''
                     }
                 }
@@ -121,22 +122,22 @@ pipeline {
                 script {
                     // Detect built images dynamically
                     def images = sh(
-                        script: '''
-                            if command -v docker compose >/dev/null 2>&1; then
-                                docker compose -f docker-compose.yml images --quiet
-                            else
-                                docker-compose -f docker-compose.yml images --quiet
-                            fi
+                        script: '''#!/bin/bash
+                        if command -v docker compose >/dev/null 2>&1; then
+                            docker compose -f docker-compose.yml images --quiet
+                        else
+                            docker-compose -f docker-compose.yml images --quiet
+                        fi
                         ''',
                         returnStdout: true
                     ).trim().split("\n")
 
                     for (img in images) {
                         if (img?.trim()) {
-                            sh """
-                                echo "🔍 Scanning image: ${img}"
-                                trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
-                                trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
+                            sh """#!/bin/bash
+                            echo "🔍 Scanning image: ${img}"
+                            trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
+                            trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
                             """
                         }
                     }
@@ -152,20 +153,20 @@ pipeline {
             cleanWs()
 
             script {
-                sh '''
-                    echo "🧹 Cleaning up Docker containers, images, and credentials..."
-                    
-                    # Stop and remove containers related to movie app
-                    docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
+                sh '''#!/bin/bash
+                echo "🧹 Cleaning up Docker containers, images, and credentials..."
+                
+                # Stop and remove containers related to movie app
+                docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
 
-                    # Remove dangling images
-                    docker image prune -f
+                # Remove dangling images
+                docker image prune -f
 
-                    # Remove dangling volumes (optional)
-                    docker volume prune -f
+                # Remove dangling volumes (optional)
+                docker volume prune -f
 
-                    # Logout from DockerHub to avoid leaving credentials behind
-                    docker logout || true
+                # Logout from DockerHub to avoid leaving credentials behind
+                docker logout || true
                 '''
             }
         }
