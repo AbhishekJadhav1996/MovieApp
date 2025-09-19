@@ -92,7 +92,7 @@ pipeline {
                 script {
                     withCredentials([
                         string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
-                        usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')
+                        usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')
                     ]) {
                         sh """#!/bin/bash
                         set -e
