@@ -87,7 +87,7 @@ pipeline {
             }
         }
 
-        stage("Docker Compose Build & Deploy") {
+        stage("Docker Build & Push") {
             steps {
                 script {
                     withCredentials([
@@ -96,18 +96,33 @@ pipeline {
                     ]) {
                         sh """#!/bin/bash
                         set -e
+
                         echo "\$DOCKER_PWD" | docker login -u abhishekjadhav1996 --password-stdin
 
-                        BACKEND_PORT=\$BACKEND_PORT
-                        GATEWAY_PORT=\$GATEWAY_PORT
-                        FRONTEND_PORT=\$FRONTEND_PORT
-                        MONGO_URI=\$MONGO_URI
+                        # Build images with DockerHub tags
+                        docker build -t abhishekjadhav1996/movie-backend:latest ./movie-app-backend-master
+                        docker build -t abhishekjadhav1996/movie-gateway:latest ./api-gateway
+                        docker build -t abhishekjadhav1996/movie-frontend:latest ./movie-app-frontend-master
 
-                        if command -v docker compose >/dev/null 2>&1; then
-                            docker compose -f docker-compose.yml up -d --build
-                        else
-                            docker-compose -f docker-compose.yml up -d --build
-                        fi
+                        # Push images to DockerHub
+                        docker push abhishekjadhav1996/movie-backend:latest
+                        docker push abhishekjadhav1996/movie-gateway:latest
+                        docker push abhishekjadhav1996/movie-frontend:latest
+                        """
+                    }
+                }
+            }
+        }
+
+        stage("Docker Compose Deploy") {
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: 'mongo-uri', variable: 'MONGO_URI'),
+                    ]) {
+                        sh """#!/bin/bash
+                        set -e
+                        MONGO_URI=\$MONGO_URI docker-compose -f docker-compose.yml up -d
                         """
                     }
                 }
@@ -117,25 +132,17 @@ pipeline {
         stage("Trivy Scan Docker Images") {
             steps {
                 script {
-                    def images = sh(
-                        script: '''
-                            if command -v docker compose >/dev/null 2>&1; then
-                                docker compose -f docker-compose.yml images --quiet
-                            else
-                                docker-compose -f docker-compose.yml images --quiet
-                            fi
-                        ''',
-                        returnStdout: true
-                    ).trim().split("\n")
-
+                    def images = [
+                        "abhishekjadhav1996/movie-backend:latest",
+                        "abhishekjadhav1996/movie-gateway:latest",
+                        "abhishekjadhav1996/movie-frontend:latest"
+                    ]
                     for (img in images) {
-                        if (img?.trim()) {
-                            sh """
-                                echo "🔍 Scanning image: ${img}"
-                                trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
-                                trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
-                            """
-                        }
+                        sh """
+                            echo "🔍 Scanning image: ${img}"
+                            trivy image -f json -o trivy-${img.replaceAll("[/:]", "_")}.json ${img}
+                            trivy image -f table -o trivy-${img.replaceAll("[/:]", "_")}.txt ${img}
+                        """
                     }
                 }
             }
@@ -151,7 +158,6 @@ pipeline {
             script {
                 sh '''#!/bin/bash
                     echo "🧹 Cleaning up Docker containers, images, and credentials..."
-
                     docker ps -a --filter "name=movie" -q | xargs -r docker rm -f
                     docker image prune -f
                     docker volume prune -f
