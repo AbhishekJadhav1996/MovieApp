@@ -38,7 +38,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'mongo-uri', variable: 'MONGO_URI')]) {
                         sh """
-PUBLIC_IP=$(curl -s http://checkip.amazonaws.com)
+PUBLIC_IP=\$(curl -s http://checkip.amazonaws.com)
 
 cat > .env <<EOF
 BACKEND_PORT=${BACKEND_PORT}
@@ -48,8 +48,8 @@ FRONTEND_PORT=${FRONTEND_PORT}
 MONGO_URI=${MONGO_URI}
 
 # Frontend env consumed by React (browser must reach gateway via public IP)
-REACT_APP_API_BASE_URL=http://$PUBLIC_IP:${GATEWAY_PORT}
-REACT_APP_WS_URL=ws://$PUBLIC_IP:${BACKEND_PORT}/ws
+REACT_APP_API_BASE_URL=http://\$PUBLIC_IP:${GATEWAY_PORT}
+REACT_APP_WS_URL=ws://\$PUBLIC_IP:${BACKEND_PORT}/ws
 
 # Gateway internal upstream to backend inside the Docker network
 MOVIE_SERVICE_URL=http://backend:${BACKEND_PORT}
@@ -79,17 +79,17 @@ docker ps --filter "name=movie"
             steps {
                 script {
                     sh """
-PUBLIC_IP=$(curl -s http://checkip.amazonaws.com)
-echo "Probing services on $PUBLIC_IP"
+PUBLIC_IP=\$(curl -s http://checkip.amazonaws.com)
+echo "Probing services on \$PUBLIC_IP"
 set -e
 for i in 1 2 3 4 5; do
-  (curl -sf http://$PUBLIC_IP:${BACKEND_PORT}/health && echo "backend OK") && break || (echo "waiting backend" && sleep 5)
+  (curl -sf http://\$PUBLIC_IP:${BACKEND_PORT}/health && echo "backend OK") && break || (echo "waiting backend" && sleep 5)
 done
 for i in 1 2 3 4 5; do
-  (curl -sf http://$PUBLIC_IP:${GATEWAY_PORT}/health && echo "gateway OK") && break || (echo "waiting gateway" && sleep 5)
+  (curl -sf http://\$PUBLIC_IP:${GATEWAY_PORT}/health && echo "gateway OK") && break || (echo "waiting gateway" && sleep 5)
 done
 for i in 1 2 3 4 5; do
-  (curl -sf http://$PUBLIC_IP:${FRONTEND_PORT} && echo "frontend OK") && break || (echo "waiting frontend" && sleep 5)
+  (curl -sf http://\$PUBLIC_IP:${FRONTEND_PORT} && echo "frontend OK") && break || (echo "waiting frontend" && sleep 5)
 done
 """
                 }
@@ -108,7 +108,7 @@ docker push abhishekjadhav1996/movie-frontend:latest
             }
         }
 
-    } // <-- make sure this closes the stages block
+    } // <-- closes stages block
 
     post {
         always { echo "Pipeline finished. Containers left running for inspection." }
@@ -116,6 +116,126 @@ docker push abhishekjadhav1996/movie-frontend:latest
         failure { echo "❌ Pipeline failed. Check logs for details." }
     }
 }
+
+
+// pipeline {
+//     agent any
+
+//     tools {
+//         jdk 'jdk17'
+//         nodejs 'node22'
+//     }
+
+//     environment {
+//         BACKEND_PORT = '5000'
+//         GATEWAY_PORT = '8000'
+//         FRONTEND_PORT = '3001'
+//     }
+
+//     stages {
+//         stage("Clean Workspace") {
+//             steps { cleanWs() }
+//         }
+
+//         stage("Git Checkout") {
+//             steps {
+//                 git branch: 'main', url: 'https://github.com/AbhishekJadhav1996/MovieApp.git'
+//             }
+//         }
+
+//         stage("Install NPM Dependencies") {
+//             steps {
+//                 parallel(
+//                     "API Gateway": { dir("api-gateway") { sh "npm install --legacy-peer-deps --no-audit --no-fund" } },
+//                     "Backend": { dir("movie-app-backend-master") { sh "npm install --legacy-peer-deps --no-audit --no-fund" } },
+//                     "Frontend": { dir("movie-app-frontend-master") { sh "npm install --legacy-peer-deps --no-audit --no-fund" } }
+//                 )
+//             }
+//         }
+
+//         stage("Generate .env") {
+//             steps {
+//                 script {
+//                     withCredentials([string(credentialsId: 'mongo-uri', variable: 'MONGO_URI')]) {
+//                         sh """
+// PUBLIC_IP=$(curl -s http://checkip.amazonaws.com)
+
+// cat > .env <<EOF
+// BACKEND_PORT=${BACKEND_PORT}
+// GATEWAY_PORT=${GATEWAY_PORT}
+// FRONTEND_PORT=${FRONTEND_PORT}
+
+// MONGO_URI=${MONGO_URI}
+
+// # Frontend env consumed by React (browser must reach gateway via public IP)
+// REACT_APP_API_BASE_URL=http://$PUBLIC_IP:${GATEWAY_PORT}
+// REACT_APP_WS_URL=ws://$PUBLIC_IP:${BACKEND_PORT}/ws
+
+// # Gateway internal upstream to backend inside the Docker network
+// MOVIE_SERVICE_URL=http://backend:${BACKEND_PORT}
+// EOF
+// """
+//                     }
+//                 }
+//             }
+//         }
+
+//         stage("Docker Compose Build & Deploy") {
+//             steps {
+//                 script {
+//                     withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PWD')]) {
+//                         sh """
+// echo "\$DOCKER_PWD" | docker login -u "\$DOCKER_USER" --password-stdin
+// docker compose --env-file .env up --build -d
+// docker compose logs --tail=50
+// docker ps --filter "name=movie"
+// """
+//                     }
+//                 }
+//             }
+//         }
+
+//         stage("Health Checks") {
+//             steps {
+//                 script {
+//                     sh """
+// PUBLIC_IP=$(curl -s http://checkip.amazonaws.com)
+// echo "Probing services on $PUBLIC_IP"
+// set -e
+// for i in 1 2 3 4 5; do
+//   (curl -sf http://$PUBLIC_IP:${BACKEND_PORT}/health && echo "backend OK") && break || (echo "waiting backend" && sleep 5)
+// done
+// for i in 1 2 3 4 5; do
+//   (curl -sf http://$PUBLIC_IP:${GATEWAY_PORT}/health && echo "gateway OK") && break || (echo "waiting gateway" && sleep 5)
+// done
+// for i in 1 2 3 4 5; do
+//   (curl -sf http://$PUBLIC_IP:${FRONTEND_PORT} && echo "frontend OK") && break || (echo "waiting frontend" && sleep 5)
+// done
+// """
+//                 }
+//             }
+//         }
+
+//         stage("Push Docker Images") {
+//             steps {
+//                 script {
+//                     sh '''
+// docker push abhishekjadhav1996/movie-backend:latest
+// docker push abhishekjadhav1996/movie-gateway:latest
+// docker push abhishekjadhav1996/movie-frontend:latest
+// '''
+//                 }
+//             }
+//         }
+
+//     } // <-- make sure this closes the stages block
+
+//     post {
+//         always { echo "Pipeline finished. Containers left running for inspection." }
+//         success { echo "✅ Build, deploy, and health checks succeeded!" }
+//         failure { echo "❌ Pipeline failed. Check logs for details." }
+//     }
+// }
 
 
 // pipeline {
