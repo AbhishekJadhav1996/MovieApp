@@ -1,29 +1,7 @@
-Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
-App.js:22 Error fetching movies: AxiosError
-fetchMovies @ App.js:22Understand this error
-:8000/movies:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
-App.js:22 Error fetching movies: AxiosError
-fetchMovies @ App.js:22Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
-WebSocketClient @ WebSocketClient.js:13Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
-WebSocketClient @ WebSocketClient.js:13Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
-WebSocketClient @ WebSocketClient.js:13Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
-WebSocketClient @ WebSocketClient.js:13Understand this error
-:8000/movies:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
-App.js:36 Error adding movie: AxiosError
-handleAddMovie @ App.js:36Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
-WebSocketClient @ WebSocketClient.js:13Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
-WebSocketClient @ WebSocketClient.js:13
-initSocket @ socket.js:27
-(anonymous) @ socket.js:51Understand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
+WebSocketClient.js:13 WebSocket connection to 'ws://54.242.40.85:3000/ws' failed: 
 WebSocketClient @ WebSocketClient.js:13
 initSocket @ socket.js:27
 (anonymous) @ socket.js:51Understand this error
 (index):1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
-WebSocketClient.js:13 WebSocket connection to 'ws://13.221.95.162:3000/ws' failed: 
+:8000/movies:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+App.js:36 Error adding movie: AxiosError
