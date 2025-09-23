@@ -27,6 +27,17 @@ app.use(
   })
 );
 
+app.use(
+  '/api/movies',
+  createProxyMiddleware({
+    target: MOVIE_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/movies': '/api/movies' },
+    logLevel: 'debug',
+  })
+);
+  
+
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`API Gateway running on port ${PORT}, proxying to ${MOVIE_SERVICE_URL}`);
