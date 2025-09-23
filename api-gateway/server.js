@@ -28,11 +28,11 @@ app.use(
 );
 
 app.use(
-  '/api/movies',
+  '/movies',
   createProxyMiddleware({
     target: MOVIE_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: { '^/api/movies': '/api/movies' },
+    pathRewrite: { '^/movies': '/api/movies' },
     logLevel: 'debug',
   })
 );
